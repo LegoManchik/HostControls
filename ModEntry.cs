@@ -54,7 +54,7 @@ namespace HostControls
 
             helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.Input.ButtonPressed += OnButtonPressed;
-            helper.Events.Display.RenderedHud += OnRenderedHud;
+            helper.Events.Display.Rendered += OnRendered;
             helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
             helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         }
@@ -216,7 +216,7 @@ namespace HostControls
             }
         }
 
-        private void OnRenderedHud(object? sender, RenderedHudEventArgs e)
+        private void OnRendered(object? sender, RenderedEventArgs e)
         {
             if (!Context.IsWorldReady)
                 return;
@@ -240,7 +240,12 @@ namespace HostControls
             bool isHover = false;
 
             // 2. Draw Single Host Pause Button anchored to the Clock on the right (ONLY for the Host!)
-            if (Context.IsMainPlayer && Config.EnableOnScreenButton && Game1.activeClickableMenu == null)
+            // Keep button visible during cutscenes (eventUp), screen fades (fadeToBlack/isFading), paused state, dialogue box, or when no blocking menu is open
+            bool isFading = Game1.globalFade || Game1.fadeToBlack || Game1.fadeToBlackAlpha > 0f;
+            bool canShowButton = Context.IsMainPlayer && Config.EnableOnScreenButton &&
+                (Game1.activeClickableMenu == null || Game1.eventUp || isFading || IsForcedPaused || Game1.activeClickableMenu is StardewValley.Menus.DialogueBox);
+
+            if (canShowButton)
             {
                 int btnSize = Config.ButtonSize;
 
@@ -285,28 +290,35 @@ namespace HostControls
                     b.Draw(_buttonsTexture, _buttonRect, sourceRect, tint);
                 }
             }
-
-            // 3. Ensure mouse cursor is drawn during Pause (vanilla hides it when freezeControls == true)
-            if (IsForcedPaused && !Game1.options.hardwareCursor && Game1.activeClickableMenu == null)
+            else
             {
-                int cursor = isHover ? 44 : (Game1.mouseCursor > 0 ? Game1.mouseCursor : Game1.cursor_default);
-                float scale = 4f + Game1.dialogueButtonScale / 150f;
-                Vector2 mousePosVec = new Vector2(Game1.getMouseX(), Game1.getMouseY());
-                Rectangle srcRect = Game1.getSourceRectForStandardTileSheet(Game1.mouseCursors, cursor, 16, 16);
+                _buttonRect = Rectangle.Empty;
+            }
 
-                b.Draw(
-                    Game1.mouseCursors,
-                    mousePosVec,
-                    srcRect,
-                    Color.White,
-                    0f,
-                    Vector2.Zero,
-                    scale,
-                    SpriteEffects.None,
-                    1f
-                );
-
+            // 3. Ensure mouse cursor is drawn if paused or hovering over button (vanilla hides it during eventUp or freezeControls)
+            if (IsForcedPaused || (canShowButton && isHover))
+            {
                 Game1.wasMouseVisibleThisFrame = true;
+
+                if (!Game1.options.hardwareCursor)
+                {
+                    int cursor = isHover ? 44 : (Game1.mouseCursor > 0 ? Game1.mouseCursor : Game1.cursor_default);
+                    float scale = 4f + Game1.dialogueButtonScale / 150f;
+                    Vector2 mousePosVec = new Vector2(Game1.getMouseX(), Game1.getMouseY());
+                    Rectangle srcRect = Game1.getSourceRectForStandardTileSheet(Game1.mouseCursors, cursor, 16, 16);
+
+                    b.Draw(
+                        Game1.mouseCursors,
+                        mousePosVec,
+                        srcRect,
+                        Color.White,
+                        0f,
+                        Vector2.Zero,
+                        scale,
+                        SpriteEffects.None,
+                        1f
+                    );
+                }
             }
         }
     }
