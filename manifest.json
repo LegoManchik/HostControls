@@ -1,0 +1,10 @@
+{
+  "Name": "Host Controls (Pause & Force Save)",
+  "Author": "LegoManchik",
+  "Version": "1.0.0",
+  "Description": "Host-only controls for forced pause and forced mid-day save with synced countdown and dark overlay across all multiplayer clients.",
+  "UniqueID": "LegoManchik.HostControls",
+  "EntryDll": "HostControls.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": []
+}
